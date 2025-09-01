@@ -3,9 +3,9 @@ const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 const faqItems = document.querySelectorAll('.faq-item');
 const whatsappLinks = document.querySelectorAll('a[href="#whatsapp"]');
 
-// WhatsApp Configuration
-const WHATSAPP_NUMBER = '5511999999999'; // Substitua pelo número real
-const WHATSAPP_MESSAGE = 'Olá! Gostaria de solicitar uma bateria Moura com entrega e instalação.';
+// WhatsApp Configuration - IMPORTANTE: Substitua pelo número real
+const WHATSAPP_NUMBER = '5511999999999'; // Substitua pelo número real do WhatsApp
+const WHATSAPP_MESSAGE = 'Olá! Gostaria de solicitar uma bateria Moura com entrega e instalação. Pode me ajudar?';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initFAQ();
     initSmoothScroll();
     initScrollAnimations();
+    initHeaderScroll();
 });
 
 // WhatsApp Links
@@ -21,6 +22,9 @@ function initWhatsAppLinks() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             openWhatsApp();
+            trackEvent('whatsapp_click', {
+                source: this.closest('section')?.className || 'unknown'
+            });
         });
     });
 }
@@ -35,17 +39,19 @@ function initFAQ() {
     faqItems.forEach(item => {
         const question = item.querySelector('.faq-question');
         
-        question.addEventListener('click', function() {
-            // Close all other FAQ items
-            faqItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('active');
-                }
+        if (question) {
+            question.addEventListener('click', function() {
+                // Close all other FAQ items
+                faqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                    }
+                });
+                
+                // Toggle current item
+                item.classList.toggle('active');
             });
-            
-            // Toggle current item
-            item.classList.toggle('active');
-        });
+        }
     });
 }
 
@@ -95,7 +101,7 @@ function initScrollAnimations() {
     }, observerOptions);
     
     // Animate elements on scroll
-    const animateElements = document.querySelectorAll('.step, .feature, .testimonial');
+    const animateElements = document.querySelectorAll('.step, .feature-card, .testimonial-card');
     animateElements.forEach(el => {
         el.style.opacity = '0';
         el.style.transform = 'translateY(30px)';
@@ -105,17 +111,23 @@ function initScrollAnimations() {
 }
 
 // Header Scroll Effect
-window.addEventListener('scroll', function() {
+function initHeaderScroll() {
     const header = document.querySelector('.header');
     
-    if (window.scrollY > 100) {
-        header.style.background = 'rgba(255, 255, 255, 0.95)';
-        header.style.backdropFilter = 'blur(10px)';
-    } else {
-        header.style.background = '#fff';
-        header.style.backdropFilter = 'none';
-    }
-});
+    const handleScroll = debounce(function() {
+        if (window.scrollY > 100) {
+            header.style.background = 'rgba(255, 255, 255, 0.98)';
+            header.style.backdropFilter = 'blur(20px)';
+            header.style.boxShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)';
+        } else {
+            header.style.background = 'rgba(255, 255, 255, 0.95)';
+            header.style.backdropFilter = 'blur(20px)';
+            header.style.boxShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
+        }
+    }, 10);
+    
+    window.addEventListener('scroll', handleScroll);
+}
 
 // Form Validation (if needed for future forms)
 function validateForm(form) {
@@ -147,33 +159,28 @@ function debounce(func, wait) {
     };
 }
 
-// Performance Optimization
-const debouncedScroll = debounce(function() {
-    // Handle scroll events here if needed
-}, 100);
-
-window.addEventListener('scroll', debouncedScroll);
-
 // Analytics (placeholder for future implementation)
 function trackEvent(eventName, eventData = {}) {
-    // Implement analytics tracking here
+    // Implement analytics tracking here (Google Analytics, Facebook Pixel, etc.)
     console.log('Event tracked:', eventName, eventData);
+    
+    // Example: Google Analytics 4
+    if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, eventData);
+    }
+    
+    // Example: Facebook Pixel
+    if (typeof fbq !== 'undefined') {
+        fbq('track', eventName, eventData);
+    }
 }
-
-// Track WhatsApp clicks
-whatsappLinks.forEach(link => {
-    link.addEventListener('click', function() {
-        trackEvent('whatsapp_click', {
-            source: this.closest('section')?.className || 'unknown'
-        });
-    });
-});
 
 // Mobile Menu (if implemented in the future)
 if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener('click', function() {
         // Implement mobile menu toggle
         console.log('Mobile menu toggle clicked');
+        // Future implementation for mobile menu
     });
 }
 
@@ -181,12 +188,85 @@ if (mobileMenuToggle) {
 window.addEventListener('error', function(e) {
     console.error('JavaScript error:', e.error);
     // Implement error reporting here if needed
+    trackEvent('javascript_error', {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno
+    });
 });
+
+// Performance Optimization
+const debouncedResize = debounce(function() {
+    // Handle resize events here if needed
+    console.log('Window resized');
+}, 250);
+
+window.addEventListener('resize', debouncedResize);
 
 // Service Worker Registration (for future PWA features)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        // Register service worker here if needed
+        // Register service worker here if needed for PWA features
+        // navigator.serviceWorker.register('/sw.js');
     });
 }
+
+// Lazy Loading for Images (if needed)
+function initLazyLoading() {
+    const images = document.querySelectorAll('img[data-src]');
+    
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                imageObserver.unobserve(img);
+            }
+        });
+    });
+    
+    images.forEach(img => imageObserver.observe(img));
+}
+
+// Initialize lazy loading if needed
+// initLazyLoading();
+
+// Accessibility improvements
+function initAccessibility() {
+    // Add keyboard navigation support
+    const focusableElements = document.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    
+    focusableElements.forEach(element => {
+        element.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (this.tagName === 'BUTTON' || this.tagName === 'A') {
+                    this.click();
+                }
+            }
+        });
+    });
+}
+
+// Initialize accessibility features
+initAccessibility();
+
+// Preload critical resources
+function preloadResources() {
+    const criticalResources = [
+        'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap',
+        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+    ];
+    
+    criticalResources.forEach(resource => {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'style';
+        link.href = resource;
+        document.head.appendChild(link);
+    });
+}
+
+// Initialize resource preloading
+preloadResources();
 
